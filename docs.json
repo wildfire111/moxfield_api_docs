@@ -10,8 +10,12 @@ info:
 
     ## Authentication
 
-    All requests require a unique `User-Agent` header issued by Moxfield upon request.
-    This User Agent acts as your credential and is used to pass Cloudflare's firewall.
+    The API uses two credentials:
+
+    ### User Agent (all requests)
+    A unique `User-Agent` string issued by Moxfield upon request. This is your
+    gateway through Cloudflare's firewall and is required for every request,
+    read or write.
 
     **Treat your User Agent like a password:**
     - Do not share it or expose it in public repositories or forums
@@ -23,6 +27,18 @@ info:
 
     It is recommended to use [`cloudscraper`](https://github.com/VeNoMouS/cloudscraper)
     (Python) or equivalent to handle Cloudflare bot detection automatically.
+
+    ### Bearer Token (write requests only)
+    Write endpoints (creating/updating/deleting decks and cards) additionally require
+    a `Authorization: Bearer <token>` header. This is a JWT issued by Moxfield's login
+    endpoint, which requires solving a CAPTCHA and cannot be obtained programmatically.
+
+    To get a token:
+    1. Log in to moxfield.com in your browser
+    2. Open DevTools → Network → any authenticated request → Request Headers
+    3. Copy the value of the `Authorization` header (everything after `Bearer `)
+
+    Tokens expire with your session. There is no automated way to refresh them.
 
     ## API Versions
 
@@ -39,7 +55,15 @@ servers:
     description: Moxfield API
 
 components:
-  securitySchemes: {}
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT required for all write operations (POST, PUT, DELETE).
+        Obtain from an authenticated browser session via DevTools.
+        Cannot be obtained programmatically due to CAPTCHA on the login endpoint.
 
   schemas:
 
@@ -608,6 +632,8 @@ paths:
       summary: Create a new deck
       operationId: createDeck
       tags: [Decks]
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -720,6 +746,8 @@ paths:
       summary: Update deck settings
       operationId: updateDeck
       tags: [Decks]
+      security:
+        - bearerAuth: []
       parameters:
         - name: deckId
           in: path
@@ -763,6 +791,8 @@ paths:
       summary: Add a card to a maindeck or sideboard
       operationId: addCard
       tags: [Cards]
+      security:
+        - bearerAuth: []
       parameters:
         - name: deckId
           in: path
@@ -801,9 +831,11 @@ paths:
 
   /v2/decks/{deckId}/cards/{boardType}/{cardId}:
     put:
-      summary: Update a card
+      summary: Update a card on a board
       operationId: updateCard
       tags: [Cards]
+      security:
+        - bearerAuth: []
       parameters:
         - name: deckId
           in: path
@@ -853,6 +885,8 @@ paths:
       summary: Remove a card from a board
       operationId: deleteCard
       tags: [Cards]
+      security:
+        - bearerAuth: []
       parameters:
         - name: deckId
           in: path
