@@ -6,7 +6,25 @@ info:
     network traffic. Base URL is https://api2.moxfield.com.
 
     **Note:** This is an undocumented, unofficial API. It may change without notice.
-    Write endpoints require a Bearer JWT token obtained by logging in to moxfield.com.
+    Moxfield does not provide public API access, documentation, or support.
+
+    ## Authentication
+
+    All requests require a unique `User-Agent` header issued by Moxfield upon request.
+    This User Agent acts as your credential and is used to pass Cloudflare's firewall.
+
+    **Treat your User Agent like a password:**
+    - Do not share it or expose it in public repositories or forums
+    - Store it in an environment variable or secrets manager
+    - Never send it to the client side
+    - Limit requests to **1 request per second** to avoid being banned
+
+    Contact Moxfield if your User Agent needs to be regenerated.
+
+    It is recommended to use [`cloudscraper`](https://github.com/VeNoMouS/cloudscraper)
+    (Python) or equivalent to handle Cloudflare bot detection automatically.
+
+    ## API Versions
 
     The API uses two versions:
     - **v3** — used for deck reads, deck creation, and card editions
@@ -20,16 +38,8 @@ servers:
   - url: https://api2.moxfield.com
     description: Moxfield API
 
-security:
-  - bearerAuth: []
-
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT obtained from moxfield.com session. Pass in Authorization header.
+  securitySchemes: {}
 
   schemas:
 
@@ -579,8 +589,6 @@ paths:
       summary: List authenticated user's decks
       operationId: listDecks
       tags: [Decks]
-      security:
-        - bearerAuth: []
       responses:
         '200':
           description: List of deck summaries
@@ -600,8 +608,6 @@ paths:
       summary: Create a new deck
       operationId: createDeck
       tags: [Decks]
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -714,8 +720,6 @@ paths:
       summary: Update deck settings
       operationId: updateDeck
       tags: [Decks]
-      security:
-        - bearerAuth: []
       parameters:
         - name: deckId
           in: path
@@ -759,8 +763,6 @@ paths:
       summary: Add a card to a maindeck or sideboard
       operationId: addCard
       tags: [Cards]
-      security:
-        - bearerAuth: []
       parameters:
         - name: deckId
           in: path
@@ -799,11 +801,9 @@ paths:
 
   /v2/decks/{deckId}/cards/{boardType}/{cardId}:
     put:
-      summary: Update a card on a board
+      summary: Update a card
       operationId: updateCard
       tags: [Cards]
-      security:
-        - bearerAuth: []
       parameters:
         - name: deckId
           in: path
@@ -853,8 +853,6 @@ paths:
       summary: Remove a card from a board
       operationId: deleteCard
       tags: [Cards]
-      security:
-        - bearerAuth: []
       parameters:
         - name: deckId
           in: path
@@ -883,6 +881,34 @@ paths:
                   autoBracket: { type: integer }
 
   # ─────────────────────────────────────────
+  # USERS — v2
+  # ─────────────────────────────────────────
+
+  /v2/users/{username}/decks:
+    get:
+      summary: Get a user's public decks
+      operationId: getUserDecks
+      tags: [Users]
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema: { type: string }
+          example: 7PointEventResults
+        - name: pageSize
+          in: query
+          schema: { type: integer, default: 100 }
+        - name: pageNumber
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: Paginated list of the user's public decks
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeckSearchResponse' }
+
+  # ─────────────────────────────────────────
   # CARD SEARCH & EDITIONS — v2/v3
   # ─────────────────────────────────────────
 
@@ -891,8 +917,6 @@ paths:
       summary: Search cards
       operationId: searchCards
       tags: [Cards]
-      security:
-        - bearerAuth: []
       parameters:
         - name: q
           in: query
@@ -937,6 +961,8 @@ paths:
                   card: { $ref: '#/components/schemas/Card' }
 
 tags:
+  - name: Users
+    description: User profile and deck listing
   - name: Decks
     description: Deck management — list, get, create, update, search
   - name: Cards
