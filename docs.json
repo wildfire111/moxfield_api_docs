@@ -10,35 +10,26 @@ info:
 
     ## Authentication
 
-    The API uses two credentials:
+    All requests require a Bearer JWT in the `Authorization` header:
 
-    ### User Agent (all requests)
-    A unique `User-Agent` string issued by Moxfield upon request. This is your
-    gateway through Cloudflare's firewall and is required for every request,
-    read or write.
+    ```
+    Authorization: Bearer <token>
+    ```
 
-    **Treat your User Agent like a password:**
-    - Do not share it or expose it in public repositories or forums
-    - Store it in an environment variable or secrets manager
-    - Never send it to the client side
-    - Limit requests to **1 request per second** to avoid being banned
-
-    Contact Moxfield if your User Agent needs to be regenerated.
-
-    It is recommended to use [`cloudscraper`](https://github.com/VeNoMouS/cloudscraper)
-    (Python) or equivalent to handle Cloudflare bot detection automatically.
-
-    ### Bearer Token (write requests only)
-    Write endpoints (creating/updating/deleting decks and cards) additionally require
-    a `Authorization: Bearer <token>` header. This is a JWT issued by Moxfield's login
-    endpoint, which requires solving a CAPTCHA and cannot be obtained programmatically.
-
-    To get a token:
+    ### Getting a token
+    The login endpoint requires solving a CAPTCHA and cannot be automated. Instead:
     1. Log in to moxfield.com in your browser
-    2. Open DevTools → Network → any authenticated request → Request Headers
+    2. Open DevTools → Network → any request → Request Headers
     3. Copy the value of the `Authorization` header (everything after `Bearer `)
 
-    Tokens expire with your session. There is no automated way to refresh them.
+    Tokens expire with your browser session and must be re-extracted on each login.
+
+    ### Read-only access
+    If your use case only requires read access (fetching decks, searching cards etc.),
+    you can contact Moxfield to request a unique `User-Agent` string. This acts as a
+    static credential that bypasses Cloudflare's firewall without needing a per-user,
+    per-session bearer token. Moxfield provides this on a case-by-case basis with no
+    guarantees of support.
 
     ## API Versions
 
@@ -61,8 +52,8 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: |
-        JWT required for all write operations (POST, PUT, DELETE).
-        Obtain from an authenticated browser session via DevTools.
+        JWT required for all requests. Obtain from an authenticated browser session
+        via DevTools → Network → any request → Authorization header.
         Cannot be obtained programmatically due to CAPTCHA on the login endpoint.
 
   schemas:
@@ -613,6 +604,8 @@ paths:
       summary: List authenticated user's decks
       operationId: listDecks
       tags: [Decks]
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: List of deck summaries
@@ -660,6 +653,8 @@ paths:
       summary: Get full deck by public ID
       operationId: getDeck
       tags: [Decks]
+      security:
+        - bearerAuth: []
       parameters:
         - name: publicId
           in: path
@@ -685,6 +680,8 @@ paths:
       summary: Search and filter decks
       operationId: searchDecks
       tags: [Decks]
+      security:
+        - bearerAuth: []
       parameters:
         - name: pageNumber
           in: query
@@ -923,6 +920,8 @@ paths:
       summary: Get a user's public decks
       operationId: getUserDecks
       tags: [Users]
+      security:
+        - bearerAuth: []
       parameters:
         - name: username
           in: path
@@ -951,6 +950,8 @@ paths:
       summary: Search cards
       operationId: searchCards
       tags: [Cards]
+      security:
+        - bearerAuth: []
       parameters:
         - name: q
           in: query
@@ -973,6 +974,8 @@ paths:
       summary: Get card editions and printing data
       operationId: getCardEditions
       tags: [Cards]
+      security:
+        - bearerAuth: []
       parameters:
         - name: uniqueCardId
           in: path
